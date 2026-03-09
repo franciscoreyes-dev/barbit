@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import { authRoutes } from '../../src/routes/auth'
+import { inviteRoutes } from '../../src/routes/invite'
 import { AppError } from '../../src/lib/errors'
 
 export function buildTestApp() {
@@ -14,5 +15,6 @@ export function buildTestApp() {
   })
 
   app.register(authRoutes, { prefix: '/auth' })
+  app.register(inviteRoutes)
   return app
 }

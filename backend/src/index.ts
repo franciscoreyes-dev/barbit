@@ -1,4 +1,6 @@
 import Fastify from 'fastify'
+import { authRoutes } from './routes/auth'
+import { inviteRoutes } from './routes/invite'
 import { AppError } from './lib/errors'
 
 export function buildApp() {
@@ -13,6 +15,8 @@ export function buildApp() {
   })
 
   app.get('/health', async () => ({ status: 'ok' }))
+  app.register(authRoutes, { prefix: '/auth' })
+  app.register(inviteRoutes)
 
   return app
 }
