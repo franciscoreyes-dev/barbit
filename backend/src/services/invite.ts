@@ -5,15 +5,14 @@ import { db } from '../db/pool'
 import { AppError } from '../lib/errors'
 import { signToken } from '../lib/jwt'
 
-type ResendFactory = (key: string | undefined) => InstanceType<typeof Resend>
-
 function getResend(): InstanceType<typeof Resend> {
-  return (Resend as unknown as ResendFactory)(process.env.RESEND_API_KEY)
+  return new Resend(process.env.RESEND_API_KEY!)
 }
 
 export async function sendInvite(email: string, shopId: string): Promise<void> {
   const shopRes = await db.query('SELECT id, name FROM shops WHERE id = $1', [shopId])
   const shop = shopRes.rows[0]
+  if (!shop) throw new AppError('SHOP_NOT_FOUND', 404)
 
   const token = randomUUID()
   const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000)
@@ -33,7 +32,7 @@ export async function sendInvite(email: string, shopId: string): Promise<void> {
   })
 }
 
-export async function getInviteInfo(token: string) {
+export async function getInviteInfo(token: string): Promise<{ email: string; shopName: string }> {
   const res = await db.query(
     `SELECT it.email, s.name AS shop_name, it.expires_at, it.used_at
      FROM invite_tokens it
@@ -61,11 +60,10 @@ export async function acceptInvite(token: string, name: string, password: string
   if (invite.used_at) throw new AppError('INVITE_USED', 409)
   if (new Date(invite.expires_at) < new Date()) throw new AppError('INVITE_EXPIRED', 410)
 
-  const passwordHash = await bcrypt.hash(password, 12)
-
   const client = await db.connect()
   try {
     await client.query('BEGIN')
+    const passwordHash = await bcrypt.hash(password, 12)
 
     const userRes = await client.query(
       `INSERT INTO users (email, password_hash, role, shop_id, is_active)

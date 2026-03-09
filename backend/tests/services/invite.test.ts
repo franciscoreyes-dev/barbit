@@ -14,11 +14,13 @@ vi.mock('bcrypt', () => ({
 }))
 
 vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({
-    emails: {
-      send: vi.fn().mockResolvedValue({ id: 'email-1' }),
-    },
-  })),
+  Resend: vi.fn().mockImplementation(function () {
+    return {
+      emails: {
+        send: vi.fn().mockResolvedValue({ id: 'email-1' }),
+      },
+    }
+  }),
 }))
 
 import { db } from '../../src/db/pool'
@@ -41,6 +43,11 @@ function makeMockClient(responses: Array<{ rows: unknown[]; rowCount: number }>)
 
 describe('sendInvite', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  it('throws SHOP_NOT_FOUND if shop does not exist', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
+    await expect(sendInvite('barber@test.com', 'nonexistent-shop')).rejects.toThrow('SHOP_NOT_FOUND')
+  })
 
   it('saves invite token and sends email via Resend', async () => {
     const shopRow = { id: 'shop-1', name: 'Test Shop' }
@@ -162,5 +169,30 @@ describe('acceptInvite', () => {
     }
     vi.mocked(db.query).mockResolvedValueOnce({ rows: [expiredToken], rowCount: 1 } as any)
     await expect(acceptInvite('expired-token', 'Mario', 'pass')).rejects.toThrow('INVITE_EXPIRED')
+  })
+
+  it('releases client and rolls back transaction on DB error', async () => {
+    const tokenRow = {
+      id: 'token-1',
+      email: 'barber@test.com',
+      shop_id: 'shop-1',
+      expires_at: new Date(Date.now() + 86400000),
+      used_at: null,
+    }
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [tokenRow], rowCount: 1 } as any)
+
+    const mockClient = {
+      query: vi.fn()
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ id: 'u1', role: 'barber', shop_id: 'shop-1' }], rowCount: 1 }) // INSERT users
+        .mockRejectedValueOnce(new Error('DB connection lost')) // INSERT barbers FAILS
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }), // ROLLBACK
+      release: vi.fn(),
+    }
+    vi.mocked(db.connect).mockResolvedValue(mockClient as any)
+
+    await expect(acceptInvite('valid-token', 'Mario', 'pass')).rejects.toThrow('DB connection lost')
+    expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK')
+    expect(mockClient.release).toHaveBeenCalled()
   })
 })
