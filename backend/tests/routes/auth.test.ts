@@ -5,13 +5,7 @@ vi.mock('../../src/services/auth', () => ({
   login: vi.fn(),
 }))
 
-vi.mock('../../src/services/otp', () => ({
-  sendOtp: vi.fn(),
-  verifyOtp: vi.fn(),
-}))
-
 import { registerOwner, login } from '../../src/services/auth'
-import { sendOtp, verifyOtp } from '../../src/services/otp'
 import { buildTestApp } from '../helpers/app'
 import { AppError } from '../../src/lib/errors'
 
@@ -66,6 +60,25 @@ describe('POST /auth/register', () => {
     })
     expect(res.statusCode).toBe(422)
   })
+
+  it('returns 409 when SLUG_TAKEN', async () => {
+    vi.mocked(registerOwner).mockRejectedValue(new AppError('SLUG_TAKEN', 409))
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        email: 'new@test.com',
+        password: 'password123',
+        shopName: 'Taken Shop',
+        shopCity: 'Roma',
+        ownerName: 'Mario',
+      },
+    })
+
+    expect(res.statusCode).toBe(409)
+    expect(JSON.parse(res.body)).toMatchObject({ code: 'SLUG_TAKEN' })
+  })
 })
 
 describe('POST /auth/login', () => {
@@ -104,5 +117,18 @@ describe('POST /auth/login', () => {
       payload: { email: 'owner@test.com' },
     })
     expect(res.statusCode).toBe(422)
+  })
+
+  it('returns 403 when ACCOUNT_INACTIVE', async () => {
+    vi.mocked(login).mockRejectedValue(new AppError('ACCOUNT_INACTIVE', 403))
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'barber@test.com', password: 'pass' },
+    })
+
+    expect(res.statusCode).toBe(403)
+    expect(JSON.parse(res.body)).toMatchObject({ code: 'ACCOUNT_INACTIVE' })
   })
 })

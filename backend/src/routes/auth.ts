@@ -1,7 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { registerOwner } from '../services/auth'
-import { login } from '../services/auth'
+import { registerOwner, login } from '../services/auth'
 
 const registerSchema = z.object({
   email: z.string().email(),
