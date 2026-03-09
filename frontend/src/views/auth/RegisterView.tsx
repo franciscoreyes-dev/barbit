@@ -57,6 +57,9 @@ export default function RegisterView() {
               <Label htmlFor="shopName">Nome negozio</Label>
               <Input id="shopName" placeholder="Barberia Mario" {...register('shopName')} />
               {errors.shopName && <p className="text-red-400 text-xs">{errors.shopName.message}</p>}
+              {errorCode === 'SLUG_TAKEN' && (
+                <p className="text-red-400 text-xs">Nome negozio già in uso, prova con un nome diverso</p>
+              )}
             </div>
             <div className="space-y-1">
               <Label htmlFor="shopCity">Città</Label>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
+import { getStoredUser } from '@/lib/auth'
 
 const loginSchema = z.object({
   email: z.string().email('Email non valida'),
@@ -30,7 +31,8 @@ export default function LoginView() {
       api.post<{ token: string }>('/auth/login', data).then(r => r.data),
     onSuccess: ({ token }) => {
       login(token)
-      navigate('/owner/dashboard')
+      const stored = getStoredUser()
+      navigate(stored?.role === 'barber' ? '/barber/calendar' : '/owner/dashboard')
     },
   })
 

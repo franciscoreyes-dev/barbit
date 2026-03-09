@@ -82,6 +82,9 @@ export default function InviteView() {
             <Button type="submit" className="w-full" disabled={mutation.isPending}>
               {mutation.isPending ? 'Attivazione...' : 'Attiva account'}
             </Button>
+            {mutation.error && (
+              <p className="text-red-400 text-sm">Errore durante l'attivazione. Riprova.</p>
+            )}
           </form>
         </CardContent>
       </Card>
