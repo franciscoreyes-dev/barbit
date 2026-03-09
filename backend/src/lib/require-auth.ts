@@ -28,6 +28,7 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
 
 export async function requireOwner(request: FastifyRequest, reply: FastifyReply) {
   await requireAuth(request, reply)
+  if (reply.sent) return
   if (request.user?.role !== 'owner') {
     reply.code(403).send({ code: 'FORBIDDEN' })
   }
