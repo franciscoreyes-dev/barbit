@@ -16,6 +16,7 @@ vi.mock('../../src/lib/require-auth', () => ({
 }))
 
 import { sendInvite, getInviteInfo, acceptInvite } from '../../src/services/invite'
+import { requireOwner } from '../../src/lib/require-auth'
 import { AppError } from '../../src/lib/errors'
 import Fastify from 'fastify'
 import { inviteRoutes } from '../../src/routes/invite'
@@ -118,6 +119,7 @@ describe('POST /barbers/invite', () => {
     expect(res.statusCode).toBe(200)
     expect(JSON.parse(res.body)).toMatchObject({ ok: true })
     expect(sendInvite).toHaveBeenCalledWith('newbarber@test.com', 'shop-1')
+    expect(vi.mocked(requireOwner)).toHaveBeenCalled()
   })
 
   it('returns 422 on invalid email', async () => {
