@@ -5,7 +5,13 @@ vi.mock('../../src/services/auth', () => ({
   login: vi.fn(),
 }))
 
+vi.mock('../../src/services/otp', () => ({
+  sendOtp: vi.fn(),
+  verifyOtp: vi.fn(),
+}))
+
 import { registerOwner, login } from '../../src/services/auth'
+import { sendOtp, verifyOtp } from '../../src/services/otp'
 import { buildTestApp } from '../helpers/app'
 import { AppError } from '../../src/lib/errors'
 
@@ -130,5 +136,89 @@ describe('POST /auth/login', () => {
 
     expect(res.statusCode).toBe(403)
     expect(JSON.parse(res.body)).toMatchObject({ code: 'ACCOUNT_INACTIVE' })
+  })
+})
+
+describe('POST /auth/otp/send', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns 200 on success', async () => {
+    vi.mocked(sendOtp).mockResolvedValue(undefined)
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/otp/send',
+      payload: { phone: '+393331234567', shopId: '00000000-0000-0000-0000-000000000001' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(JSON.parse(res.body)).toMatchObject({ ok: true })
+    expect(sendOtp).toHaveBeenCalledWith('+393331234567')
+  })
+
+  it('returns 422 on missing phone', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/otp/send',
+      payload: { shopId: '00000000-0000-0000-0000-000000000001' },
+    })
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('returns 422 on invalid shopId', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/otp/send',
+      payload: { phone: '+393331234567', shopId: 'not-a-uuid' },
+    })
+    expect(res.statusCode).toBe(422)
+  })
+})
+
+describe('POST /auth/otp/verify', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns 200 with token on success', async () => {
+    vi.mocked(verifyOtp).mockResolvedValue({ token: 'customer-jwt' })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/otp/verify',
+      payload: {
+        phone: '+393331234567',
+        code: '123456',
+        shopId: '00000000-0000-0000-0000-000000000001',
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(JSON.parse(res.body)).toMatchObject({ token: 'customer-jwt' })
+  })
+
+  it('returns 400 on OTP_INVALID', async () => {
+    vi.mocked(verifyOtp).mockRejectedValue(new AppError('OTP_INVALID', 400))
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/otp/verify',
+      payload: {
+        phone: '+393331234567',
+        code: '000000',
+        shopId: '00000000-0000-0000-0000-000000000001',
+      },
+    })
+    expect(res.statusCode).toBe(400)
+    expect(JSON.parse(res.body)).toMatchObject({ code: 'OTP_INVALID' })
+  })
+
+  it('returns 422 on code not exactly 6 chars', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/otp/verify',
+      payload: {
+        phone: '+393331234567',
+        code: '12345',
+        shopId: '00000000-0000-0000-0000-000000000001',
+      },
+    })
+    expect(res.statusCode).toBe(422)
   })
 })

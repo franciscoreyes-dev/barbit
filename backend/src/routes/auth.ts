@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { registerOwner, login } from '../services/auth'
+import { sendOtp, verifyOtp } from '../services/otp'
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -13,6 +14,17 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+})
+
+const otpSendSchema = z.object({
+  phone: z.string().min(10),
+  shopId: z.string().uuid(),
+})
+
+const otpVerifySchema = z.object({
+  phone: z.string().min(10),
+  code: z.string().length(6),
+  shopId: z.string().uuid(),
 })
 
 export async function authRoutes(app: FastifyInstance) {
@@ -31,6 +43,24 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(422).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() })
     }
     const result = await login(parsed.data.email, parsed.data.password)
+    return reply.send(result)
+  })
+
+  app.post('/otp/send', async (req, reply) => {
+    const parsed = otpSendSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(422).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() })
+    }
+    await sendOtp(parsed.data.phone)
+    return reply.send({ ok: true })
+  })
+
+  app.post('/otp/verify', async (req, reply) => {
+    const parsed = otpVerifySchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(422).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() })
+    }
+    const result = await verifyOtp(parsed.data.phone, parsed.data.code, parsed.data.shopId)
     return reply.send(result)
   })
 }
