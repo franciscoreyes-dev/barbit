@@ -22,10 +22,21 @@ async function migrate() {
       console.log(`skip: ${file}`)
       continue
     }
+
     const sql = fs.readFileSync(path.join(dir, file), 'utf8')
-    await db.query(sql)
-    await db.query('INSERT INTO _migrations (filename) VALUES ($1)', [file])
-    console.log(`ran: ${file}`)
+    const client = await db.connect()
+    try {
+      await client.query('BEGIN')
+      await client.query(sql)
+      await client.query('INSERT INTO _migrations (filename) VALUES ($1)', [file])
+      await client.query('COMMIT')
+      console.log(`ran: ${file}`)
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
   }
 
   await db.end()

@@ -11,3 +11,6 @@ CREATE TABLE IF NOT EXISTS appointments (
   notes             TEXT,
   created_at        TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE INDEX ON appointments (barber_id, start_time);
+CREATE INDEX ON appointments (shop_id, start_time);

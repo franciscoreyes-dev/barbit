@@ -5,5 +5,8 @@ CREATE TABLE IF NOT EXISTS barber_services (
   name               VARCHAR(100) NOT NULL,
   duration_minutes   INTEGER NOT NULL,
   price              NUMERIC(10,2),
-  is_active          BOOLEAN DEFAULT true
+  is_active          BOOLEAN DEFAULT true,
+  created_at         TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE INDEX ON barber_services (barber_id);

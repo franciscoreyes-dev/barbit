@@ -6,3 +6,5 @@ CREATE TABLE IF NOT EXISTS otp_codes (
   used_at    TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE INDEX ON otp_codes (phone);
