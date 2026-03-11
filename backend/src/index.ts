@@ -4,6 +4,7 @@ import { inviteRoutes } from './routes/invite'
 import { shopRoutes } from './routes/shops'
 import { barberRoutes } from './routes/barbers'
 import { serviceRoutes } from './routes/services'
+import { availabilityRoutes } from './routes/availability'
 import { AppError } from './lib/errors'
 
 export function buildApp() {
@@ -23,6 +24,7 @@ export function buildApp() {
   app.register(shopRoutes)
   app.register(barberRoutes)
   app.register(serviceRoutes)
+  app.register(availabilityRoutes)
 
   return app
 }
