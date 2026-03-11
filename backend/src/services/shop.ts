@@ -82,6 +82,15 @@ export async function getShopBySlug(slug: string): Promise<ShopProfile> {
   return { ...shop, barbers } as ShopProfile
 }
 
+export async function getShopById(shopId: string): Promise<Record<string, unknown>> {
+  const { rows } = await db.query(
+    'SELECT id, name, slug, address, city, phone, email, timezone FROM shops WHERE id = $1',
+    [shopId]
+  )
+  if (!rows[0]) throw new AppError('SHOP_NOT_FOUND', 404)
+  return rows[0]
+}
+
 export async function updateShop(shopId: string, user: OwnerBarberPayload, data: UpdateShopInput): Promise<void> {
   if (user.shopId !== shopId) throw new AppError('FORBIDDEN', 403)
 

@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { searchShops, getShopBySlug, updateShop } from '../services/shop'
+import { searchShops, getShopBySlug, updateShop, getShopById } from '../services/shop'
 import { requireOwner } from '../lib/require-auth'
+import { OwnerBarberPayload } from '../lib/jwt'
 
 const updateShopSchema = z.object({
   name: z.string().min(1).optional(),
@@ -13,6 +14,12 @@ const updateShopSchema = z.object({
 })
 
 export async function shopRoutes(app: FastifyInstance) {
+  app.get('/shops/mine', { preHandler: requireOwner }, async (req, reply) => {
+    const user = req.user as OwnerBarberPayload
+    const shop = await getShopById(user.shopId)
+    reply.send(shop)
+  })
+
   app.get('/shops/search', async (req, reply) => {
     const { q, city } = req.query as { q?: string; city?: string }
     const results = await searchShops(q, city)
