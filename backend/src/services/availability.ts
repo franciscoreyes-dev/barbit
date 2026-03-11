@@ -134,3 +134,64 @@ export async function deleteException(
     [barberId, date]
   )
 }
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number)
+  return h * 60 + m
+}
+
+export async function getAvailableSlots(
+  barberId: string,
+  date: string,
+  serviceId: string
+): Promise<string[]> {
+  const svcRes = await db.query(
+    `SELECT duration_minutes FROM barber_services WHERE id = $1 AND barber_id = $2 AND is_active = true`,
+    [serviceId, barberId]
+  )
+  const service = svcRes.rows[0]
+  if (!service) throw new AppError('SERVICE_NOT_FOUND', 404)
+  const duration: number = service.duration_minutes
+
+  const dayOfWeek = new Date(date + 'T00:00:00Z').getUTCDay()
+
+  const schedRes = await db.query(
+    `SELECT start_time, end_time, is_working FROM weekly_schedule WHERE barber_id = $1 AND day_of_week = $2`,
+    [barberId, dayOfWeek]
+  )
+  const schedule = schedRes.rows[0]
+  if (!schedule || !schedule.is_working) return []
+
+  const excRes = await db.query(
+    `SELECT is_off, start_time, end_time FROM schedule_exceptions WHERE barber_id = $1 AND date = $2`,
+    [barberId, date]
+  )
+  const exception = excRes.rows[0] ?? null
+  if (exception?.is_off) return []
+
+  const startMin = timeToMinutes(exception?.start_time ?? schedule.start_time)
+  const endMin = timeToMinutes(exception?.end_time ?? schedule.end_time)
+
+  const apptRes = await db.query(
+    `SELECT start_time, end_time FROM appointments
+     WHERE barber_id = $1 AND status != 'cancelled'
+     AND DATE(start_time AT TIME ZONE 'UTC') = $2::date`,
+    [barberId, date]
+  )
+
+  const slots: string[] = []
+  let current = startMin
+  while (current + duration <= endMin) {
+    const slotStart = new Date(
+      `${date}T${String(Math.floor(current / 60)).padStart(2, '0')}:${String(current % 60).padStart(2, '0')}:00Z`
+    )
+    const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000)
+
+    const overlaps = apptRes.rows.some(
+      (appt) => slotStart < new Date(appt.end_time) && slotEnd > new Date(appt.start_time)
+    )
+    if (!overlaps) slots.push(slotStart.toISOString())
+    current += duration
+  }
+  return slots
+}

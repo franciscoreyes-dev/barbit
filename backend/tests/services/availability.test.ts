@@ -8,7 +8,7 @@ vi.mock('../../src/db/pool', () => ({
 }))
 
 import { db } from '../../src/db/pool'
-import { getSchedule, upsertSchedule, getExceptions, addException, deleteException } from '../../src/services/availability'
+import { getSchedule, upsertSchedule, getExceptions, addException, deleteException, getAvailableSlots } from '../../src/services/availability'
 import { AppError } from '../../src/lib/errors'
 
 function makeMockClient(responses: Array<{ rows: unknown[]; rowCount: number }>) {
@@ -279,5 +279,122 @@ describe('deleteException', () => {
       .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
 
     await expect(deleteException('b-1', '2025-03-15', ownerUser)).resolves.toBeUndefined()
+  })
+})
+
+describe('getAvailableSlots', () => {
+  const barberId = 'barber-1'
+  const date = '2025-03-17' // Monday (day_of_week = 1)
+  const serviceId = 'svc-1'
+
+  beforeEach(() => vi.clearAllMocks())
+
+  it('generates cascade slots: 09:00-12:00 with 40min service → 4 slots', async () => {
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [{ duration_minutes: 40 }], rowCount: 1 } as any)      // service
+      .mockResolvedValueOnce({ rows: [{ start_time: '09:00', end_time: '12:00', is_working: true }], rowCount: 1 } as any) // schedule
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)   // no exception
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)   // no appointments
+
+    const slots = await getAvailableSlots(barberId, date, serviceId)
+    expect(slots).toHaveLength(4)
+    expect(slots[0]).toBe('2025-03-17T09:00:00.000Z')
+    expect(slots[1]).toBe('2025-03-17T09:40:00.000Z')
+    expect(slots[2]).toBe('2025-03-17T10:20:00.000Z')
+    expect(slots[3]).toBe('2025-03-17T11:00:00.000Z')
+    // 11:40 would end at 12:20 > 12:00, excluded by while condition
+  })
+
+  it('returns [] when is_working = false', async () => {
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [{ duration_minutes: 30 }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [{ start_time: '09:00', end_time: '18:00', is_working: false }], rowCount: 1 } as any)
+
+    const slots = await getAvailableSlots(barberId, date, serviceId)
+    expect(slots).toEqual([])
+  })
+
+  it('returns [] when no schedule entry for that day', async () => {
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [{ duration_minutes: 30 }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any) // no schedule row
+
+    const slots = await getAvailableSlots(barberId, date, serviceId)
+    expect(slots).toEqual([])
+  })
+
+  it('returns [] when exception is_off = true', async () => {
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [{ duration_minutes: 30 }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [{ start_time: '09:00', end_time: '18:00', is_working: true }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [{ is_off: true, start_time: null, end_time: null }], rowCount: 1 } as any)
+
+    const slots = await getAvailableSlots(barberId, date, serviceId)
+    expect(slots).toEqual([])
+  })
+
+  it('uses exception start/end time instead of schedule', async () => {
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [{ duration_minutes: 60 }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [{ start_time: '09:00', end_time: '18:00', is_working: true }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [{ is_off: false, start_time: '14:00', end_time: '16:00' }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
+
+    const slots = await getAvailableSlots(barberId, date, serviceId)
+    expect(slots).toHaveLength(2)
+    expect(slots[0]).toBe('2025-03-17T14:00:00.000Z')
+    expect(slots[1]).toBe('2025-03-17T15:00:00.000Z')
+  })
+
+  it('filters out slots overlapping with existing appointments', async () => {
+    // 09:00-12:00 with 30min → normally 6 slots; appt at 09:30-10:00 blocks 09:30
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [{ duration_minutes: 30 }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [{ start_time: '09:00', end_time: '12:00', is_working: true }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
+      .mockResolvedValueOnce({ rows: [
+        { start_time: '2025-03-17T09:30:00.000Z', end_time: '2025-03-17T10:00:00.000Z' }
+      ], rowCount: 1 } as any)
+
+    const slots = await getAvailableSlots(barberId, date, serviceId)
+    expect(slots).toHaveLength(5)
+    expect(slots).not.toContain('2025-03-17T09:30:00.000Z')
+    expect(slots).toContain('2025-03-17T09:00:00.000Z')
+    expect(slots).toContain('2025-03-17T10:00:00.000Z')
+  })
+
+  it('slot starting exactly at appointment end is free (strict < boundary)', async () => {
+    // appointment 09:00-09:30 → slot at 09:30 should be FREE (slotStart === apptEnd is not overlap)
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [{ duration_minutes: 30 }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [{ start_time: '09:00', end_time: '12:00', is_working: true }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
+      .mockResolvedValueOnce({ rows: [
+        { start_time: '2025-03-17T09:00:00.000Z', end_time: '2025-03-17T09:30:00.000Z' }
+      ], rowCount: 1 } as any)
+
+    const slots = await getAvailableSlots(barberId, date, serviceId)
+    expect(slots).not.toContain('2025-03-17T09:00:00.000Z') // blocked
+    expect(slots).toContain('2025-03-17T09:30:00.000Z')     // free (starts at exact end of appt)
+  })
+
+  it('slot ending exactly at appointment start is free (strict > boundary)', async () => {
+    // appointment 09:30-10:00 → slot 09:00-09:30 should be FREE (slotEnd === apptStart is not overlap)
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [{ duration_minutes: 30 }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [{ start_time: '09:00', end_time: '12:00', is_working: true }], rowCount: 1 } as any)
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
+      .mockResolvedValueOnce({ rows: [
+        { start_time: '2025-03-17T09:30:00.000Z', end_time: '2025-03-17T10:00:00.000Z' }
+      ], rowCount: 1 } as any)
+
+    const slots = await getAvailableSlots(barberId, date, serviceId)
+    expect(slots).toContain('2025-03-17T09:00:00.000Z')     // free (ends at exact start of appt)
+    expect(slots).not.toContain('2025-03-17T09:30:00.000Z') // blocked
+  })
+
+  it('throws SERVICE_NOT_FOUND when service not found for barber', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [], rowCount: 0 } as any)
+    await expect(getAvailableSlots(barberId, date, serviceId)).rejects.toThrow('SERVICE_NOT_FOUND')
   })
 })

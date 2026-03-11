@@ -6,6 +6,7 @@ vi.mock('../../src/services/availability', () => ({
   getExceptions: vi.fn(),
   addException: vi.fn(),
   deleteException: vi.fn(),
+  getAvailableSlots: vi.fn(),
 }))
 
 vi.mock('../../src/lib/require-auth', () => ({
@@ -14,7 +15,7 @@ vi.mock('../../src/lib/require-auth', () => ({
   }),
 }))
 
-import { getSchedule, upsertSchedule, getExceptions, addException, deleteException } from '../../src/services/availability'
+import { getSchedule, upsertSchedule, getExceptions, addException, deleteException, getAvailableSlots } from '../../src/services/availability'
 import { requireAuth } from '../../src/lib/require-auth'
 import { AppError } from '../../src/lib/errors'
 import Fastify from 'fastify'
@@ -346,5 +347,32 @@ describe('DELETE /barbers/:id/exceptions/:date', () => {
     })
     expect(res.statusCode).toBe(403)
     expect(JSON.parse(res.body)).toMatchObject({ code: 'FORBIDDEN' })
+  })
+})
+
+describe('GET /barbers/:id/slots', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns slots array on success', async () => {
+    vi.mocked(getAvailableSlots).mockResolvedValue(['2025-03-17T09:00:00.000Z'])
+    const res = await app.inject({ method: 'GET', url: '/barbers/b-1/slots?date=2025-03-17&serviceId=svc-1' })
+    expect(res.statusCode).toBe(200)
+    expect(JSON.parse(res.body)).toMatchObject({ slots: ['2025-03-17T09:00:00.000Z'] })
+  })
+
+  it('returns 422 when date is missing', async () => {
+    const res = await app.inject({ method: 'GET', url: '/barbers/b-1/slots?serviceId=svc-1' })
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('returns 422 when serviceId is missing', async () => {
+    const res = await app.inject({ method: 'GET', url: '/barbers/b-1/slots?date=2025-03-17' })
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('returns 404 when SERVICE_NOT_FOUND', async () => {
+    vi.mocked(getAvailableSlots).mockRejectedValue(new AppError('SERVICE_NOT_FOUND', 404))
+    const res = await app.inject({ method: 'GET', url: '/barbers/b-1/slots?date=2025-03-17&serviceId=svc-1' })
+    expect(res.statusCode).toBe(404)
   })
 })

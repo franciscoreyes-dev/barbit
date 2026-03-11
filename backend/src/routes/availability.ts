@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { getSchedule, upsertSchedule, getExceptions, addException, deleteException } from '../services/availability'
+import { getSchedule, upsertSchedule, getExceptions, addException, deleteException, getAvailableSlots } from '../services/availability'
 import { requireAuth } from '../lib/require-auth'
 
 const scheduleDaySchema = z.object({
@@ -50,4 +50,16 @@ export async function availabilityRoutes(app: FastifyInstance) {
     await deleteException(req.params.id, req.params.date, req.user!)
     return reply.code(204).send()
   })
+
+  app.get<{ Params: { id: string }; Querystring: { date?: string; serviceId?: string } }>(
+    '/barbers/:id/slots',
+    async (req, reply) => {
+      const { date, serviceId } = req.query
+      if (!date || !serviceId) {
+        return reply.code(422).send({ code: 'VALIDATION_ERROR', message: 'date and serviceId are required' })
+      }
+      const slots = await getAvailableSlots(req.params.id, date, serviceId)
+      return reply.send({ slots })
+    }
+  )
 }
