@@ -9,6 +9,34 @@ export interface CreateAppointmentInput {
   startTime: string
 }
 
+export interface CustomerAppointmentItem {
+  id: string
+  start_time: string
+  end_time: string
+  status: string
+  barber_name: string
+  service_name: string
+  price: string | null
+  shop_name: string
+}
+
+export interface BarberAppointmentItem {
+  id: string
+  start_time: string
+  end_time: string
+  status: string
+  notes: string | null
+  customer_name: string | null
+  customer_phone: string
+  service_name: string
+  duration_minutes: number
+  price: string | null
+}
+
+export interface ShopAppointmentItem extends BarberAppointmentItem {
+  barber_name: string
+}
+
 function getTwilio() {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const twilio = require('twilio')
@@ -73,7 +101,7 @@ export async function createAppointment(
         const twilioClient = getTwilio()
         twilioClient.messages
           .create({
-            body: `Prenotazione confermata per ${appt.start_time}`,
+            body: `Prenotazione confermata per ${startTime.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}`,
             from: process.env.TWILIO_PHONE_NUMBER,
             to: cust.phone,
           })
@@ -90,7 +118,7 @@ export async function createAppointment(
   }
 }
 
-export async function getCustomerAppointments(customerId: string): Promise<unknown[]> {
+export async function getCustomerAppointments(customerId: string): Promise<CustomerAppointmentItem[]> {
   const res = await db.query(
     `SELECT a.id, a.start_time, a.end_time, a.status,
             b.name AS barber_name,
@@ -131,7 +159,7 @@ export async function getBarberAppointments(
   barberId: string,
   date: string,
   user: OwnerBarberPayload
-): Promise<unknown[]> {
+): Promise<BarberAppointmentItem[]> {
   const barberRes = await db.query(
     `SELECT user_id, shop_id FROM barbers WHERE id = $1`,
     [barberId]
@@ -142,9 +170,9 @@ export async function getBarberAppointments(
   authorizeBarberAccess(barber, user)
 
   const res = await db.query(
-    `SELECT a.id, a.start_time, a.end_time, a.status,
+    `SELECT a.id, a.start_time, a.end_time, a.status, a.notes,
             c.name AS customer_name, c.phone AS customer_phone,
-            bs.name AS service_name, bs.price
+            bs.name AS service_name, bs.duration_minutes, bs.price
      FROM appointments a
      JOIN customers c ON c.id = a.customer_id
      JOIN barber_services bs ON bs.id = a.barber_service_id
@@ -161,14 +189,14 @@ export async function getShopAppointments(
   shopId: string,
   date: string,
   user: OwnerBarberPayload
-): Promise<unknown[]> {
+): Promise<ShopAppointmentItem[]> {
   if (user.shopId !== shopId) throw new AppError('FORBIDDEN', 403)
 
   const res = await db.query(
-    `SELECT a.id, a.start_time, a.end_time, a.status,
+    `SELECT a.id, a.start_time, a.end_time, a.status, a.notes,
             b.name AS barber_name,
             c.name AS customer_name, c.phone AS customer_phone,
-            bs.name AS service_name, bs.price
+            bs.name AS service_name, bs.duration_minutes, bs.price
      FROM appointments a
      JOIN barbers b ON b.id = a.barber_id
      JOIN customers c ON c.id = a.customer_id
