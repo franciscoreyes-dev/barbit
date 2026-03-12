@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import cors from '@fastify/cors'
 import { authRoutes } from './routes/auth'
 import { inviteRoutes } from './routes/invite'
 import { shopRoutes } from './routes/shops'
@@ -10,6 +11,11 @@ import { AppError } from './lib/errors'
 
 export function buildApp() {
   const app = Fastify({ logger: false })
+
+  app.register(cors, {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
+  })
 
   app.setErrorHandler((error, _req, reply) => {
     if (error instanceof AppError) {
