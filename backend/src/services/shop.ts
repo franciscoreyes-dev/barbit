@@ -72,7 +72,7 @@ export async function getShopBySlug(slug: string): Promise<{ shop: ShopProfile; 
   const barbers = await Promise.all(
     (barbersRes.rows as Array<{ id: string; user_id: string; name: string; avatar_url: string | null }>).map(async (barber) => {
       const servicesRes = await db.query(
-        `SELECT id, name, duration_minutes, price FROM barber_services WHERE barber_id = $1 AND is_active = true`,
+        `SELECT id, name, duration_minutes, price, is_active FROM barber_services WHERE barber_id = $1 AND is_active = true`,
         [barber.id]
       )
       return { ...barber, services: servicesRes.rows as ServiceSummary[] }

@@ -59,7 +59,7 @@ export async function availabilityRoutes(app: FastifyInstance) {
         return reply.code(422).send({ code: 'VALIDATION_ERROR', message: 'date and serviceId are required' })
       }
       const slots = await getAvailableSlots(req.params.id, date, serviceId)
-      return reply.send({ slots })
+      return reply.send(slots)
     }
   )
 }
