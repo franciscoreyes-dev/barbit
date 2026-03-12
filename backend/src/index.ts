@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { authRoutes } from './routes/auth'
@@ -21,6 +22,7 @@ export function buildApp() {
     if (error instanceof AppError) {
       reply.code(error.statusCode).send({ code: error.code })
     } else {
+      console.error(error)
       reply.code(500).send({ code: 'INTERNAL_SERVER_ERROR' })
     }
   })
