@@ -5,6 +5,7 @@ import { authorizeBarberAccess } from '../lib/guard'
 
 export interface BarberWithServices {
   id: string
+  user_id: string
   name: string
   avatar_url: string | null
   services: Array<{ id: string; name: string; duration_minutes: number; price: string | null }>
@@ -26,12 +27,12 @@ async function fetchBarber(barberId: string) {
 
 export async function listBarbers(shopId: string): Promise<BarberWithServices[]> {
   const barbersRes = await db.query(
-    `SELECT id, name, avatar_url FROM barbers WHERE shop_id = $1 AND is_active = true ORDER BY name`,
+    `SELECT id, user_id, name, avatar_url FROM barbers WHERE shop_id = $1 AND is_active = true ORDER BY name`,
     [shopId]
   )
 
   const barbers = await Promise.all(
-    (barbersRes.rows as Array<{ id: string; name: string; avatar_url: string | null }>).map(async (barber) => {
+    (barbersRes.rows as Array<{ id: string; user_id: string; name: string; avatar_url: string | null }>).map(async (barber) => {
       const servicesRes = await db.query(
         `SELECT id, name, duration_minutes, price FROM barber_services WHERE barber_id = $1 AND is_active = true ORDER BY name`,
         [barber.id]

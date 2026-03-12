@@ -55,7 +55,7 @@ export async function searchShops(q?: string, city?: string): Promise<ShopSearch
   return res.rows as ShopSearchResult[]
 }
 
-export async function getShopBySlug(slug: string): Promise<ShopProfile> {
+export async function getShopBySlug(slug: string): Promise<{ shop: ShopProfile; barbers: unknown[] }> {
   const shopRes = await db.query(
     `SELECT id, name, slug, city, address, phone, email, timezone FROM shops WHERE slug = $1`,
     [slug]
@@ -65,12 +65,12 @@ export async function getShopBySlug(slug: string): Promise<ShopProfile> {
   if (!shop) throw new AppError('SHOP_NOT_FOUND', 404)
 
   const barbersRes = await db.query(
-    `SELECT id, name, avatar_url FROM barbers WHERE shop_id = $1 AND is_active = true`,
+    `SELECT id, user_id, name, avatar_url FROM barbers WHERE shop_id = $1 AND is_active = true`,
     [shop.id]
   )
 
   const barbers = await Promise.all(
-    (barbersRes.rows as Array<{ id: string; name: string; avatar_url: string | null }>).map(async (barber) => {
+    (barbersRes.rows as Array<{ id: string; user_id: string; name: string; avatar_url: string | null }>).map(async (barber) => {
       const servicesRes = await db.query(
         `SELECT id, name, duration_minutes, price FROM barber_services WHERE barber_id = $1 AND is_active = true`,
         [barber.id]
@@ -79,7 +79,7 @@ export async function getShopBySlug(slug: string): Promise<ShopProfile> {
     })
   )
 
-  return { ...shop, barbers } as ShopProfile
+  return { shop, barbers }
 }
 
 export async function getShopById(shopId: string): Promise<Record<string, unknown>> {
