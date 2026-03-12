@@ -55,7 +55,7 @@ export default function ShopView() {
         {shop.address && <p className="text-zinc-500 text-xs mb-4">{shop.address}</p>}
         <h2 className="text-lg font-semibold mb-3">Barbieri</h2>
         <div className="space-y-4">
-          {barbers.filter(b => b.is_active).map(b => <BarberCard key={b.id} barber={b} shopId={shop.id} />)}
+          {barbers.map(b => <BarberCard key={b.id} barber={b} shopId={shop.id} />)}
         </div>
       </div>
     </main>

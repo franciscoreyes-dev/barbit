@@ -65,7 +65,7 @@ export async function getShopBySlug(slug: string): Promise<{ shop: ShopProfile; 
   if (!shop) throw new AppError('SHOP_NOT_FOUND', 404)
 
   const barbersRes = await db.query(
-    `SELECT id, user_id, name, avatar_url FROM barbers WHERE shop_id = $1 AND is_active = true`,
+    `SELECT id, user_id, name, avatar_url, is_active FROM barbers WHERE shop_id = $1 AND is_active = true`,
     [shop.id]
   )
 
