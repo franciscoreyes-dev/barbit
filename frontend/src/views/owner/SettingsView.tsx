@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Save } from 'lucide-react'
 
 const schema = z.object({
   name: z.string().min(2, 'Nome obbligatorio'),
@@ -38,7 +39,7 @@ export default function SettingsView() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-zinc-50 mb-6">Impostazioni negozio</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Impostazioni negozio</h1>
       <form onSubmit={handleSubmit(d => update.mutate(d))} className="space-y-4 max-w-md">
         {([
           { id: 'name' as const, label: 'Nome negozio', type: 'text', extra: errCode === 'SLUG_TAKEN' ? 'Nome già in uso' : undefined },
@@ -51,15 +52,15 @@ export default function SettingsView() {
           <div key={id} className="space-y-1">
             <Label htmlFor={id}>{label}</Label>
             <Input id={id} type={type} {...register(id)} />
-            {errors[id] && <p className="text-red-400 text-xs">{errors[id]?.message}</p>}
-            {extra && <p className="text-red-400 text-xs">{extra}</p>}
+            {errors[id] && <p className="text-red-600 text-xs">{errors[id]?.message}</p>}
+            {extra && <p className="text-red-600 text-xs">{extra}</p>}
           </div>
         ))}
         <div className="flex items-center gap-4">
-          <Button type="submit" disabled={update.isPending} className="bg-amber-500 text-zinc-950">
-            {update.isPending ? 'Salvataggio...' : 'Salva'}
+          <Button type="submit" disabled={update.isPending}>
+            <Save className="w-4 h-4 mr-1" />{update.isPending ? 'Salvataggio...' : 'Salva'}
           </Button>
-          {update.isSuccess && <span className="text-green-400 text-sm">Salvato!</span>}
+          {update.isSuccess && <span className="text-emerald-600 text-sm animate-fade-in" role="status">Salvato!</span>}
         </div>
       </form>
     </div>

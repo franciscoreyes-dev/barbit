@@ -27,7 +27,7 @@ async function fetchBarber(barberId: string) {
 
 export async function listBarbers(shopId: string): Promise<BarberWithServices[]> {
   const barbersRes = await db.query(
-    `SELECT id, user_id, name, avatar_url, is_active FROM barbers WHERE shop_id = $1 AND is_active = true ORDER BY name`,
+    `SELECT id, user_id, name, avatar_url, is_active FROM barbers WHERE shop_id = $1 ORDER BY name`,
     [shopId]
   )
 

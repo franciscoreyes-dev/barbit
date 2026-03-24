@@ -11,6 +11,7 @@ const OtpView = lazy(() => import('@/views/public/OtpView'))
 const LoginView = lazy(() => import('@/views/auth/LoginView'))
 const RegisterView = lazy(() => import('@/views/auth/RegisterView'))
 const InviteView = lazy(() => import('@/views/auth/InviteView'))
+const StatsView = lazy(() => import('@/views/owner/StatsView'))
 const DashboardView = lazy(() => import('@/views/owner/DashboardView'))
 const BarbersView = lazy(() => import('@/views/owner/BarbersView'))
 const BarberDetailView = lazy(() => import('@/views/owner/BarberDetailView'))
@@ -47,7 +48,8 @@ export const router = createBrowserRouter([
     children: [{
       element: <OwnerLayout />,
       children: [
-        { path: 'dashboard', element: <DashboardView /> },
+        { path: 'dashboard', element: <StatsView /> },
+        { path: 'calendar', element: <DashboardView /> },
         { path: 'barbers', element: <BarbersView /> },
         { path: 'barbers/:id', element: <BarberDetailView /> },
         { path: 'settings', element: <SettingsView /> },

@@ -50,7 +50,7 @@ export async function listCatalog(): Promise<CatalogItem[]> {
 
 export async function listBarberServices(barberId: string): Promise<BarberService[]> {
   const res = await db.query(
-    `SELECT id, barber_id, service_catalog_id, name, duration_minutes, price, is_active FROM barber_services WHERE barber_id = $1 AND is_active = true ORDER BY name`,
+    `SELECT id, barber_id, service_catalog_id, name, duration_minutes, price, is_active FROM barber_services WHERE barber_id = $1 ORDER BY is_active DESC, name`,
     [barberId]
   )
   return res.rows as BarberService[]
@@ -127,4 +127,48 @@ export async function deleteBarberService(
   if (serviceRes.rows.length === 0) throw new AppError('SERVICE_NOT_FOUND', 404)
 
   await db.query(`UPDATE barber_services SET is_active = false WHERE id = $1`, [serviceId])
+}
+
+export async function reactivateBarberService(
+  barberId: string,
+  serviceId: string,
+  user: OwnerBarberPayload
+): Promise<void> {
+  const barber = await fetchBarber(barberId)
+  if (!barber) throw new AppError('BARBER_NOT_FOUND', 404)
+
+  authorizeBarberAccess(barber, user)
+
+  const serviceRes = await db.query(
+    `SELECT id FROM barber_services WHERE id = $1 AND barber_id = $2`,
+    [serviceId, barberId]
+  )
+  if (serviceRes.rows.length === 0) throw new AppError('SERVICE_NOT_FOUND', 404)
+
+  await db.query(`UPDATE barber_services SET is_active = true WHERE id = $1`, [serviceId])
+}
+
+export async function hardDeleteBarberService(
+  barberId: string,
+  serviceId: string,
+  user: OwnerBarberPayload
+): Promise<void> {
+  const barber = await fetchBarber(barberId)
+  if (!barber) throw new AppError('BARBER_NOT_FOUND', 404)
+
+  authorizeBarberAccess(barber, user)
+
+  const serviceRes = await db.query(
+    `SELECT id FROM barber_services WHERE id = $1 AND barber_id = $2`,
+    [serviceId, barberId]
+  )
+  if (serviceRes.rows.length === 0) throw new AppError('SERVICE_NOT_FOUND', 404)
+
+  const apptRes = await db.query(
+    `SELECT id FROM appointments WHERE barber_service_id = $1 AND status IN ('confirmed') LIMIT 1`,
+    [serviceId]
+  )
+  if (apptRes.rows.length > 0) throw new AppError('SERVICE_HAS_APPOINTMENTS', 409)
+
+  await db.query(`DELETE FROM barber_services WHERE id = $1`, [serviceId])
 }

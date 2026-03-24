@@ -9,6 +9,7 @@ import { serviceRoutes } from './routes/services'
 import { availabilityRoutes } from './routes/availability'
 import { appointmentRoutes } from './routes/appointments'
 import { AppError } from './lib/errors'
+import { startReminderJob } from './jobs/reminders'
 
 export function buildApp() {
   const app = Fastify({ logger: false })
@@ -47,5 +48,6 @@ if (require.main === module) {
       app.log.error(err)
       process.exit(1)
     }
+    startReminderJob()
   })
 }

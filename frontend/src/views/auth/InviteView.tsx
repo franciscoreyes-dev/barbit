@@ -43,47 +43,47 @@ export default function InviteView() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <p className="text-zinc-400">Caricamento...</p>
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-slate-500">Caricamento...</p>
       </main>
     )
   }
 
   if (error) {
     return (
-      <main className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <p className="text-red-400">Invito non valido o scaduto.</p>
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-red-600">Invito non valido o scaduto.</p>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Accetta invito</CardTitle>
-          <p className="text-zinc-400 text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Sei stato invitato a {data?.shopName} come barbiere.
           </p>
-          <p className="text-zinc-500 text-xs">{data?.email}</p>
+          <p className="text-slate-400 text-xs">{data?.email}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-4">
             <div className="space-y-1">
               <Label htmlFor="name">Il tuo nome</Label>
               <Input id="name" placeholder="Mario Rossi" {...register('name')} />
-              {errors.name && <p className="text-red-400 text-xs">{errors.name.message}</p>}
+              {errors.name && <p className="text-red-600 text-xs">{errors.name.message}</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor="password">Scegli una password</Label>
               <Input id="password" type="password" {...register('password')} />
-              {errors.password && <p className="text-red-400 text-xs">{errors.password.message}</p>}
+              {errors.password && <p className="text-red-600 text-xs">{errors.password.message}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={mutation.isPending}>
               {mutation.isPending ? 'Attivazione...' : 'Attiva account'}
             </Button>
             {mutation.error && (
-              <p className="text-red-400 text-sm">Errore durante l'attivazione. Riprova.</p>
+              <p className="text-red-600 text-sm animate-fade-in" role="alert">Errore durante l'attivazione. Riprova.</p>
             )}
           </form>
         </CardContent>

@@ -14,7 +14,7 @@ export function useUpsertSchedule(barberId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (days: ApiScheduleDay[]) =>
-      api.put(`/barbers/${barberId}/schedule`, days).then(r => r.data),
+      api.put(`/barbers/${barberId}/schedule`, { days }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['barbers', barberId, 'schedule'] }),
   })
 }

@@ -41,7 +41,7 @@ export default function RegisterView() {
   const errorCode = apiError?.response?.data?.code
 
   return (
-    <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Registra il tuo negozio</CardTitle>
@@ -51,38 +51,38 @@ export default function RegisterView() {
             <div className="space-y-1">
               <Label htmlFor="ownerName">Il tuo nome</Label>
               <Input id="ownerName" placeholder="Mario Rossi" {...register('ownerName')} />
-              {errors.ownerName && <p className="text-red-400 text-xs">{errors.ownerName.message}</p>}
+              {errors.ownerName && <p className="text-red-600 text-xs">{errors.ownerName.message}</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor="shopName">Nome negozio</Label>
               <Input id="shopName" placeholder="Barberia Mario" {...register('shopName')} />
-              {errors.shopName && <p className="text-red-400 text-xs">{errors.shopName.message}</p>}
+              {errors.shopName && <p className="text-red-600 text-xs">{errors.shopName.message}</p>}
               {errorCode === 'SLUG_TAKEN' && (
-                <p className="text-red-400 text-xs">Nome negozio già in uso, prova con un nome diverso</p>
+                <p className="text-red-600 text-xs animate-fade-in" role="alert">Nome negozio già in uso, prova con un nome diverso</p>
               )}
             </div>
             <div className="space-y-1">
               <Label htmlFor="shopCity">Città</Label>
               <Input id="shopCity" placeholder="Roma" {...register('shopCity')} />
-              {errors.shopCity && <p className="text-red-400 text-xs">{errors.shopCity.message}</p>}
+              {errors.shopCity && <p className="text-red-600 text-xs">{errors.shopCity.message}</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="owner@barberia.it" {...register('email')} />
-              {errors.email && <p className="text-red-400 text-xs">{errors.email.message}</p>}
-              {errorCode === 'EMAIL_TAKEN' && <p className="text-red-400 text-xs">Email già in uso</p>}
+              {errors.email && <p className="text-red-600 text-xs">{errors.email.message}</p>}
+              {errorCode === 'EMAIL_TAKEN' && <p className="text-red-600 text-xs animate-fade-in" role="alert">Email già in uso</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" {...register('password')} />
-              {errors.password && <p className="text-red-400 text-xs">{errors.password.message}</p>}
+              {errors.password && <p className="text-red-600 text-xs">{errors.password.message}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={mutation.isPending}>
               {mutation.isPending ? 'Registrazione...' : 'Crea negozio'}
             </Button>
-            <p className="text-center text-zinc-400 text-sm">
+            <p className="text-center text-slate-500 text-sm">
               Hai già un account?{' '}
-              <Link to="/auth/login" className="text-amber-500 hover:underline">Accedi</Link>
+              <Link to="/auth/login" className="text-blue-600 hover:underline">Accedi</Link>
             </p>
           </form>
         </CardContent>

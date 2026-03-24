@@ -43,3 +43,21 @@ export function useDeleteService(barberId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['barbers', barberId, 'services'] }),
   })
 }
+
+export function useReactivateService(barberId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (serviceId: string) =>
+      api.post(`/barbers/${barberId}/services/${serviceId}/reactivate`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['barbers', barberId, 'services'] }),
+  })
+}
+
+export function useHardDeleteService(barberId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (serviceId: string) =>
+      api.delete(`/barbers/${barberId}/services/${serviceId}/permanent`).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['barbers', barberId, 'services'] }),
+  })
+}

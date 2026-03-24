@@ -34,12 +34,20 @@ async function fetchBarber(barberId: string) {
   return res.rows[0] ?? null
 }
 
+function stripSeconds(time: string): string {
+  return time.slice(0, 5)
+}
+
 export async function getSchedule(barberId: string): Promise<ScheduleDay[]> {
   const res = await db.query(
     `SELECT day_of_week, start_time, end_time, is_working FROM weekly_schedule WHERE barber_id = $1 ORDER BY day_of_week`,
     [barberId]
   )
-  return res.rows as ScheduleDay[]
+  return (res.rows as ScheduleDay[]).map(row => ({
+    ...row,
+    start_time: stripSeconds(row.start_time),
+    end_time: stripSeconds(row.end_time),
+  }))
 }
 
 export async function upsertSchedule(

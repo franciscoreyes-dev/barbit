@@ -28,11 +28,39 @@ export function useMyShop() {
   })
 }
 
+export interface ShopStats {
+  totalConfirmed: number
+  totalCancelled: number
+  totalCompleted: number
+  totalNoShow: number
+  revenue: number
+  expectedRevenue: number
+  noShowRate: number
+  avgBookingsPerBarber: number
+  mostRequestedService: { name: string; count: number } | null
+  busiestBarber: { name: string; count: number } | null
+  appointmentsPerDay: Array<{ date: string; count: number }>
+  busiestHours: Array<{ hour: number; count: number }>
+  serviceBreakdown: Array<{ name: string; count: number; revenue: number }>
+  barberBreakdown: Array<{ name: string; count: number; revenue: number }>
+}
+
+export function useShopStats(shopId: string, from: string, to: string, barberIds?: string[]) {
+  return useQuery({
+    queryKey: ['shops', shopId, 'stats', { from, to, barberIds }],
+    queryFn: () =>
+      api.get<ShopStats>(`/shops/${shopId}/stats`, {
+        params: { from, to, barberIds: barberIds?.join(',') || undefined },
+      }).then(r => r.data),
+    enabled: !!shopId && !!from && !!to,
+  })
+}
+
 export function useUpdateShop(shopId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: Partial<Pick<ApiShop, 'name' | 'address' | 'city' | 'phone' | 'email' | 'timezone'>>) =>
       api.patch(`/shops/${shopId}`, data).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['shops'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shops', 'mine'] }),
   })
 }

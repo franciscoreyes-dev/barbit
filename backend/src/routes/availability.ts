@@ -17,9 +17,9 @@ const upsertScheduleSchema = z.object({
 const addExceptionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   is_off: z.boolean(),
-  start_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  end_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  reason: z.string().optional(),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  reason: z.string().nullable().optional(),
 })
 
 export async function availabilityRoutes(app: FastifyInstance) {

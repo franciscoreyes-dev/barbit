@@ -1,19 +1,29 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getStoredUser, logout as logoutUtil } from '@/lib/auth'
 import type { User } from '@/types'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(() => getStoredUser())
 
-  function login(token: string) {
+  useEffect(() => {
+    function handleStorage(e: StorageEvent) {
+      if (e.key === 'barbit_token') {
+        setUser(getStoredUser())
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
+  const login = useCallback((token: string) => {
     localStorage.setItem('barbit_token', token)
     setUser(getStoredUser())
-  }
+  }, [])
 
-  function logout() {
+  const logout = useCallback(() => {
     logoutUtil()
     setUser(null)
-  }
+  }, [])
 
   return {
     user,

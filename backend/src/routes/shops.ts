@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { searchShops, getShopBySlug, updateShop, getShopById } from '../services/shop'
+import { searchShops, getShopBySlug, updateShop, getShopById, getShopStats } from '../services/shop'
 import { requireOwner } from '../lib/require-auth'
 import { OwnerBarberPayload } from '../lib/jwt'
 
@@ -30,6 +30,18 @@ export async function shopRoutes(app: FastifyInstance) {
     const result = await getShopBySlug(req.params.slug)
     return reply.send(result)
   })
+
+  app.get<{ Params: { id: string }; Querystring: { from?: string; to?: string; barberIds?: string } }>(
+    '/shops/:id/stats',
+    { preHandler: requireOwner },
+    async (req, reply) => {
+      const { from, to, barberIds } = req.query
+      if (!from || !to) return reply.code(422).send({ code: 'VALIDATION_ERROR', message: 'from and to are required' })
+      const barberIdList = barberIds ? barberIds.split(',').filter(Boolean) : undefined
+      const stats = await getShopStats(req.params.id, from, to, req.user!, barberIdList)
+      return reply.send(stats)
+    }
+  )
 
   app.patch<{ Params: { id: string } }>('/shops/:id', { preHandler: requireOwner }, async (req, reply) => {
     const parsed = updateShopSchema.safeParse(req.body)

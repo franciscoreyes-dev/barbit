@@ -1,1 +1,97 @@
 @import "tailwindcss";
+
+/* safelist: border-blue-500 border-emerald-500 border-violet-500 border-amber-500 border-rose-500 border-cyan-500 border-orange-500 border-indigo-500 border-teal-500 border-pink-500 bg-blue-100 bg-emerald-100 bg-violet-100 bg-amber-100 bg-rose-100 bg-cyan-100 bg-orange-100 bg-indigo-100 bg-teal-100 bg-pink-100 text-blue-700 text-emerald-700 text-violet-700 text-amber-700 text-rose-700 text-cyan-700 text-orange-700 text-indigo-700 text-teal-700 text-pink-700 */
+
+/* Custom easing curves */
+:root {
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Custom font */
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global focus-visible indicator for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Remove focus ring for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Safe area for bottom tab bar on iOS */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Animations ── */
+
+/* Staggered fade-in-up for list items */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s var(--ease-out-quart) both;
+  animation-delay: calc(var(--stagger, 0) * 60ms);
+}
+
+/* Simple fade-in for success/status messages */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s var(--ease-out-quart) both;
+}
+
+/* Bar chart grow animation */
+@keyframes grow-up {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.animate-grow-up {
+  transform-origin: bottom;
+  animation: grow-up 0.5s var(--ease-out-expo) both;
+  animation-delay: calc(var(--stagger, 0) * 80ms);
+}
+
+/* Horizontal bar chart grow animation */
+@keyframes grow-right {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.animate-grow-right {
+  transform-origin: left;
+  animation: grow-right 0.5s var(--ease-out-expo) both;
+  animation-delay: calc(var(--stagger, 0) * 80ms);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

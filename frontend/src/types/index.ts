@@ -118,5 +118,6 @@ export interface ApiBarberAppointment {
 }
 
 export interface ApiShopAppointment extends ApiBarberAppointment {
+  barber_id: string
   barber_name: string
 }

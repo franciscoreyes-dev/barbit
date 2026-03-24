@@ -4,6 +4,7 @@ import { useBarberServices } from '@/hooks/useServices'
 import { useSlots } from '@/hooks/useSlots'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import api from '@/lib/api'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -19,6 +20,7 @@ export default function BookingView() {
   const [service, setService] = useState<ApiBarberService | null>(null)
   const [date, setDate] = useState('')
   const [slot, setSlot] = useState('')
+  const [customerName, setCustomerName] = useState('')
   const [phone, setPhone] = useState('')
   const [phoneErr, setPhoneErr] = useState('')
   const [sending, setSending] = useState(false)
@@ -35,28 +37,35 @@ export default function BookingView() {
       await api.post('/auth/otp/send', { phone, shopId: state.shopId })
       navigate(`/book/${barberId}/confirm`, {
         state: { shopId: state.shopId, barberName: state.barberName, barberId,
-          serviceId: service!.id, serviceName: service!.name, price: service!.price, startTime: slot, phone },
+          serviceId: service!.id, serviceName: service!.name, price: service!.price, startTime: slot, phone,
+          customerName: customerName.trim() || undefined },
       })
     } catch { setPhoneErr("Errore nell'invio dell'OTP. Riprova.") }
     finally { setSending(false) }
   }
 
   if (step === 1) return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-50 p-4">
+    <main className="min-h-screen bg-slate-50 text-slate-900 p-4">
       <div className="max-w-lg mx-auto pt-6">
-        <p className="text-zinc-400 text-sm mb-1">Barbiere: {state.barberName}</p>
+        <p className="text-slate-500 text-sm mb-1">Barbiere: {state.barberName}</p>
         <h1 className="text-2xl font-bold mb-6">Scegli il servizio</h1>
         {loadingSvc && <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>}
-        {errSvc && <p className="text-red-400 text-sm">Errore nel caricamento.</p>}
-        <div className="space-y-3">
-          {services?.filter(s => s.is_active).map(svc => (
+        {errSvc && <p className="text-red-600 text-sm" role="alert">Errore nel caricamento dei servizi.</p>}
+        {!loadingSvc && services?.filter(s => s.is_active).length === 0 && (
+          <p className="text-slate-500 text-sm">Questo barbiere non ha ancora servizi disponibili.</p>
+        )}
+        <div className="space-y-3" role="radiogroup" aria-label="Scegli servizio">
+          {services?.filter(s => s.is_active).map((svc, i) => (
             <button key={svc.id} onClick={() => { setService(svc); setStep(2) }}
-              className="w-full text-left rounded-lg border border-zinc-800 bg-zinc-900 p-4 hover:border-amber-500 transition-colors">
+              role="radio" aria-checked={service?.id === svc.id}
+              style={{ '--stagger': i } as React.CSSProperties}
+              aria-label={`${svc.name}, ${svc.duration_minutes} minuti${svc.price ? `, €${svc.price}` : ''}`}
+              className="w-full text-left rounded-lg border border-slate-200 bg-white p-4 hover:border-blue-400 hover:shadow-sm transition-all min-h-[64px] animate-fade-in-up">
               <div className="flex justify-between items-center">
-                <p className="font-semibold text-zinc-50">{svc.name}</p>
-                {svc.price && <p className="text-amber-500 font-semibold">€{svc.price}</p>}
+                <p className="font-semibold text-slate-900">{svc.name}</p>
+                {svc.price && <p className="text-blue-600 font-semibold">€{svc.price}</p>}
               </div>
-              <p className="text-zinc-400 text-sm">{svc.duration_minutes} minuti</p>
+              <p className="text-slate-500 text-sm">{svc.duration_minutes} minuti</p>
             </button>
           ))}
         </div>
@@ -65,64 +74,69 @@ export default function BookingView() {
   )
 
   if (step === 2) return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-50 p-4">
+    <main className="min-h-screen bg-slate-50 text-slate-900 p-4">
       <div className="max-w-lg mx-auto pt-6">
-        <button onClick={() => setStep(1)} className="text-zinc-400 text-sm mb-4 hover:text-zinc-50">← Indietro</button>
+        <button onClick={() => setStep(1)} className="text-slate-500 text-sm mb-4 hover:text-slate-900 min-h-[44px] flex items-center transition-colors duration-150" aria-label="Torna alla scelta del servizio">← Indietro</button>
         <h1 className="text-2xl font-bold mb-6">Scegli data e orario</h1>
         <div className="mb-6">
-          <label className="block text-zinc-400 text-sm mb-2">Data</label>
-          <input type="date" min={today} value={date}
-            onChange={e => { setDate(e.target.value); setSlot('') }}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-50 focus:outline-none focus:border-amber-500" />
+          <label htmlFor="booking-date" className="block text-slate-500 text-sm mb-2">Data</label>
+          <Input id="booking-date" type="date" min={today} value={date}
+            onChange={e => { setDate(e.target.value); setSlot('') }} />
         </div>
         {date && (
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">Orario disponibile</label>
-            {loadingSlots && <div className="grid grid-cols-3 gap-2">{[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-10" />)}</div>}
-            {errSlots && <p className="text-red-400 text-sm">Errore slot.</p>}
-            {slots?.length === 0 && <p className="text-zinc-400 text-sm">Nessuno slot disponibile.</p>}
-            <div className="grid grid-cols-3 gap-2">
-              {slots?.map(s => (
+            <p className="text-slate-500 text-sm mb-2" id="slot-label">Orario disponibile</p>
+            {loadingSlots && <div className="grid grid-cols-3 gap-2" role="status" aria-live="polite">{[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-11" />)}</div>}
+            {errSlots && <p className="text-red-600 text-sm" role="alert">Errore nel caricamento degli slot.</p>}
+            {slots?.length === 0 && !loadingSlots && <p className="text-slate-500 text-sm">Nessuno slot disponibile per questa data.</p>}
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="slot-label">
+              {slots?.map((s, i) => (
                 <button key={s} onClick={() => setSlot(s)}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${slot === s ? 'bg-amber-500 text-zinc-950' : 'border border-zinc-700 text-zinc-300 hover:border-amber-500'}`}>
+                  role="radio" aria-checked={slot === s}
+                  style={{ '--stagger': i } as React.CSSProperties}
+                  className={`rounded-md px-3 py-2.5 text-sm font-medium transition-colors min-h-[44px] animate-fade-in-up ${slot === s ? 'bg-blue-600 text-white' : 'border border-slate-300 text-slate-700 hover:border-blue-400'}`}>
                   {format(new Date(s), 'HH:mm')}
                 </button>
               ))}
             </div>
           </div>
         )}
-        {slot && <Button onClick={() => setStep(3)} className="mt-6 w-full bg-amber-500 text-zinc-950">Continua</Button>}
+        {slot && <Button onClick={() => setStep(3)} className="mt-6 w-full min-h-[44px]">Continua</Button>}
       </div>
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-50 p-4">
+    <main className="min-h-screen bg-slate-50 text-slate-900 p-4">
       <div className="max-w-lg mx-auto pt-6">
-        <button onClick={() => setStep(2)} className="text-zinc-400 text-sm mb-4 hover:text-zinc-50">← Indietro</button>
+        <button onClick={() => setStep(2)} className="text-slate-500 text-sm mb-4 hover:text-slate-900 min-h-[44px] flex items-center transition-colors duration-150" aria-label="Torna alla scelta dell'orario">← Indietro</button>
         <h1 className="text-2xl font-bold mb-6">Riepilogo</h1>
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-2 mb-6">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-2 mb-6 shadow-sm">
           {([['Barbiere', state.barberName], ['Servizio', service?.name ?? ''],
             ['Data', format(new Date(date + 'T00:00:00'), 'EEEE d MMMM yyyy', { locale: it })],
             ['Ora', format(new Date(slot), 'HH:mm')]] as [string, string][]).map(([l, v]) => (
             <div key={l} className="flex justify-between">
-              <span className="text-zinc-400 text-sm">{l}</span><span className="text-zinc-50 text-sm">{v}</span>
+              <span className="text-slate-500 text-sm">{l}</span><span className="text-slate-900 text-sm">{v}</span>
             </div>
           ))}
           {service?.price && (
-            <div className="flex justify-between border-t border-zinc-800 pt-2">
-              <span className="text-zinc-400 text-sm">Prezzo</span>
-              <span className="text-amber-500 font-semibold">€{service.price}</span>
+            <div className="flex justify-between border-t border-slate-200 pt-2">
+              <span className="text-slate-500 text-sm">Prezzo</span>
+              <span className="text-blue-600 font-semibold">€{service.price}</span>
             </div>
           )}
         </div>
         <div className="space-y-2 mb-4">
-          <label className="block text-zinc-400 text-sm">Numero di telefono</label>
-          <input type="tel" placeholder="+39 333 123 4567" value={phone} onChange={e => setPhone(e.target.value)}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-50 placeholder-zinc-500 focus:outline-none focus:border-amber-500" />
-          {phoneErr && <p className="text-red-400 text-xs">{phoneErr}</p>}
+          <label htmlFor="customer-name" className="block text-slate-500 text-sm">Il tuo nome</label>
+          <Input id="customer-name" type="text" placeholder="Mario Rossi" value={customerName} onChange={e => setCustomerName(e.target.value)} />
         </div>
-        <Button onClick={requestOtp} disabled={sending || !phone} className="w-full bg-amber-500 text-zinc-950">
+        <div className="space-y-2 mb-4">
+          <label htmlFor="phone" className="block text-slate-500 text-sm">Numero di telefono</label>
+          <Input id="phone" type="tel" placeholder="+39 333 123 4567" value={phone} onChange={e => setPhone(e.target.value)}
+            aria-describedby={phoneErr ? 'phone-error' : undefined} />
+          {phoneErr && <p id="phone-error" className="text-red-600 text-xs animate-fade-in" role="alert">{phoneErr}</p>}
+        </div>
+        <Button onClick={requestOtp} disabled={sending || !phone} className="w-full min-h-[44px]">
           {sending ? 'Invio OTP...' : 'Ricevi codice via SMS'}
         </Button>
       </div>

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { listCatalog, listBarberServices, addBarberService, updateBarberService, deleteBarberService } from '../services/catalog'
+import { listCatalog, listBarberServices, addBarberService, updateBarberService, deleteBarberService, reactivateBarberService, hardDeleteBarberService } from '../services/catalog'
 import { requireAuth } from '../lib/require-auth'
 
 const addServiceSchema = z.object({
@@ -41,6 +41,16 @@ export async function serviceRoutes(app: FastifyInstance) {
 
   app.delete<{ Params: { id: string; serviceId: string } }>('/barbers/:id/services/:serviceId', { preHandler: requireAuth }, async (req, reply) => {
     await deleteBarberService(req.params.id, req.params.serviceId, req.user!)
+    return reply.code(204).send()
+  })
+
+  app.post<{ Params: { id: string; serviceId: string } }>('/barbers/:id/services/:serviceId/reactivate', { preHandler: requireAuth }, async (req, reply) => {
+    await reactivateBarberService(req.params.id, req.params.serviceId, req.user!)
+    return reply.code(204).send()
+  })
+
+  app.delete<{ Params: { id: string; serviceId: string } }>('/barbers/:id/services/:serviceId/permanent', { preHandler: requireAuth }, async (req, reply) => {
+    await hardDeleteBarberService(req.params.id, req.params.serviceId, req.user!)
     return reply.code(204).send()
   })
 }

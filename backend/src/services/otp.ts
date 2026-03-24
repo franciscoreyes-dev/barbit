@@ -33,15 +33,20 @@ export async function sendOtp(phone: string): Promise<void> {
     [phone, codeHash, expiresAt]
   )
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[OTP] ${phone} → ${code}`)
+    return
+  }
+
   const client = getTwilioClient()
   await client.messages.create({
     body: `Il tuo codice Barbit: ${code}`,
-    from: process.env.TWILIO_FROM_NUMBER,
+    from: process.env.TWILIO_PHONE_NUMBER,
     to: phone,
   })
 }
 
-export async function verifyOtp(phone: string, code: string, shopId: string): Promise<{ token: string }> {
+export async function verifyOtp(phone: string, code: string, shopId: string, name?: string): Promise<{ token: string }> {
   const codeHash = hashCode(code)
 
   const res = await db.query(
@@ -60,10 +65,10 @@ export async function verifyOtp(phone: string, code: string, shopId: string): Pr
     await client.query('BEGIN')
     await client.query(`UPDATE otp_codes SET used_at = now() WHERE id = $1`, [otp.id])
     const customerRes = await client.query(
-      `INSERT INTO customers (phone, shop_id) VALUES ($1, $2)
-       ON CONFLICT (phone, shop_id) DO UPDATE SET phone = EXCLUDED.phone
+      `INSERT INTO customers (phone, name, shop_id) VALUES ($1, $2, $3)
+       ON CONFLICT (phone, shop_id) DO UPDATE SET name = COALESCE(EXCLUDED.name, customers.name)
        RETURNING id, shop_id`,
-      [phone, shopId]
+      [phone, name ?? null, shopId]
     )
     await client.query('COMMIT')
 

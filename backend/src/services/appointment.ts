@@ -34,6 +34,7 @@ export interface BarberAppointmentItem {
 }
 
 export interface ShopAppointmentItem extends BarberAppointmentItem {
+  barber_id: string
   barber_name: string
 }
 
@@ -194,7 +195,7 @@ export async function getShopAppointments(
 
   const res = await db.query(
     `SELECT a.id, a.start_time, a.end_time, a.status, a.notes,
-            b.name AS barber_name,
+            b.id AS barber_id, b.name AS barber_name,
             c.name AS customer_name, c.phone AS customer_phone,
             bs.name AS service_name, bs.duration_minutes, bs.price
      FROM appointments a

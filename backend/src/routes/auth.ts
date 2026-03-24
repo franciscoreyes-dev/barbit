@@ -25,6 +25,7 @@ const otpVerifySchema = z.object({
   phone: z.string().min(10),
   code: z.string().length(6),
   shopId: z.string().uuid(),
+  name: z.string().min(1).optional(),
 })
 
 export async function authRoutes(app: FastifyInstance) {
@@ -60,7 +61,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.code(422).send({ code: 'VALIDATION_ERROR', errors: parsed.error.flatten() })
     }
-    const result = await verifyOtp(parsed.data.phone, parsed.data.code, parsed.data.shopId)
+    const result = await verifyOtp(parsed.data.phone, parsed.data.code, parsed.data.shopId, parsed.data.name)
     return reply.send(result)
   })
 }

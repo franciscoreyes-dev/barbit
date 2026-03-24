@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { InputOTP } from '@/components/ui/input-otp'
 import api from '@/lib/api'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -8,7 +9,7 @@ import { it } from 'date-fns/locale'
 interface BookingState {
   shopId: string; barberId: string; barberName: string
   serviceId: string; serviceName: string; price?: string | null
-  startTime: string; phone: string
+  startTime: string; phone: string; customerName?: string
 }
 interface ConfirmedAppt { id: string; start_time: string; end_time: string }
 
@@ -21,10 +22,10 @@ export default function OtpView() {
   const [appt, setAppt] = useState<ConfirmedAppt | null>(null)
 
   if (!state) return (
-    <main className="min-h-screen bg-zinc-950 flex items-center justify-center">
+    <main className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="text-center">
-        <p className="text-zinc-400 mb-4">Sessione scaduta.</p>
-        <Button onClick={() => navigate('/')} className="bg-amber-500 text-zinc-950">Torna alla home</Button>
+        <p className="text-slate-500 mb-4">Sessione scaduta.</p>
+        <Button onClick={() => navigate('/')} className="min-h-[44px]">Torna alla home</Button>
       </div>
     </main>
   )
@@ -34,7 +35,7 @@ export default function OtpView() {
     setError(''); setLoading(true)
     try {
       const { data: { token } } = await api.post<{ token: string }>('/auth/otp/verify', {
-        phone: state!.phone, code, shopId: state!.shopId,
+        phone: state!.phone, code, shopId: state!.shopId, name: state!.customerName,
       })
       const { data } = await api.post<ConfirmedAppt>('/appointments', {
         barberId: state!.barberId, serviceId: state!.serviceId, startTime: state!.startTime,
@@ -53,47 +54,47 @@ export default function OtpView() {
   if (appt) {
     const start = new Date(appt.start_time)
     return (
-      <main className="min-h-screen bg-zinc-950 text-zinc-50 p-4 flex items-center justify-center">
+      <main className="min-h-screen bg-slate-50 text-slate-900 p-4 flex items-center justify-center">
         <div className="max-w-sm w-full text-center">
-          <div className="text-5xl mb-4">✓</div>
-          <h1 className="text-2xl font-bold text-amber-500 mb-6">Prenotazione confermata!</h1>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-2 text-left mb-6">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl font-bold mx-auto mb-4 animate-fade-in-up" style={{ '--stagger': 0 } as React.CSSProperties} aria-hidden="true">✓</div>
+          <h1 className="text-2xl font-bold text-blue-600 mb-6 animate-fade-in-up" style={{ '--stagger': 1 } as React.CSSProperties}>Prenotazione confermata!</h1>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-2 text-left mb-6 shadow-sm animate-fade-in-up" style={{ '--stagger': 2 } as React.CSSProperties}>
             {([['Barbiere', state.barberName], ['Servizio', state.serviceName],
               ['Data', format(start, 'EEEE d MMMM', { locale: it })],
               ['Ora', format(start, 'HH:mm')]] as [string, string][]).map(([l, v]) => (
               <div key={l} className="flex justify-between">
-                <span className="text-zinc-400 text-sm">{l}</span>
-                <span className="text-zinc-50 text-sm">{v}</span>
+                <span className="text-slate-500 text-sm">{l}</span>
+                <span className="text-slate-900 text-sm">{v}</span>
               </div>
             ))}
             {state.price && (
-              <div className="flex justify-between border-t border-zinc-800 pt-2">
-                <span className="text-zinc-400 text-sm">Prezzo</span>
-                <span className="text-amber-500 font-semibold">€{state.price}</span>
+              <div className="flex justify-between border-t border-slate-200 pt-2">
+                <span className="text-slate-500 text-sm">Prezzo</span>
+                <span className="text-blue-600 font-semibold">€{state.price}</span>
               </div>
             )}
           </div>
-          <p className="text-zinc-400 text-sm mb-4">Riceverai un SMS di conferma.</p>
-          <Button onClick={() => navigate('/')} className="w-full bg-amber-500 text-zinc-950">Torna alla home</Button>
+          <p className="text-slate-500 text-sm mb-4">Riceverai un SMS di conferma.</p>
+          <Button onClick={() => navigate('/')} className="w-full min-h-[44px]">Torna alla home</Button>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-50 p-4">
+    <main className="min-h-screen bg-slate-50 text-slate-900 p-4">
       <div className="max-w-sm mx-auto pt-12">
         <h1 className="text-2xl font-bold mb-2">Verifica il numero</h1>
-        <p className="text-zinc-400 text-sm mb-8">Codice inviato al {state.phone}</p>
-        <input type="text" inputMode="numeric" maxLength={6} placeholder="000000"
-          value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
-          className="w-full text-center text-3xl tracking-widest rounded-md border border-zinc-700 bg-zinc-900 px-3 py-4 text-zinc-50 focus:outline-none focus:border-amber-500 mb-4" />
-        {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+        <p className="text-slate-500 text-sm mb-8">Codice inviato al {state.phone}</p>
+        <div className="mb-4" aria-describedby={error ? 'otp-error' : undefined}>
+          <InputOTP value={code} onChange={setCode} />
+        </div>
+        {error && <p id="otp-error" className="text-red-600 text-sm mb-4 animate-fade-in" role="alert">{error}</p>}
         <Button onClick={verifyAndBook} disabled={loading || code.length !== 6}
-          className="w-full bg-amber-500 text-zinc-950 hover:bg-amber-400">
+          className="w-full min-h-[44px]">
           {loading ? 'Verifica...' : 'Conferma prenotazione'}
         </Button>
-        <button onClick={() => navigate(-1)} className="mt-4 w-full text-center text-zinc-400 text-sm hover:text-zinc-50">
+        <button onClick={() => navigate(-1)} className="mt-4 w-full text-center text-slate-500 text-sm hover:text-slate-900 min-h-[44px] transition-colors duration-150" aria-label="Torna alla pagina precedente">
           ← Indietro
         </button>
       </div>

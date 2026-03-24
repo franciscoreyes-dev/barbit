@@ -37,7 +37,7 @@ export default function LoginView() {
   })
 
   return (
-    <main className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Accedi a Barbit</CardTitle>
@@ -47,22 +47,22 @@ export default function LoginView() {
             <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="owner@barberia.it" {...register('email')} />
-              {errors.email && <p className="text-red-400 text-xs">{errors.email.message}</p>}
+              {errors.email && <p className="text-red-600 text-xs">{errors.email.message}</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" {...register('password')} />
-              {errors.password && <p className="text-red-400 text-xs">{errors.password.message}</p>}
+              {errors.password && <p className="text-red-600 text-xs">{errors.password.message}</p>}
             </div>
             {mutation.error && (
-              <p className="text-red-400 text-sm">Credenziali non valide</p>
+              <p className="text-red-600 text-sm animate-fade-in" role="alert">Credenziali non valide</p>
             )}
             <Button type="submit" className="w-full" disabled={mutation.isPending}>
               {mutation.isPending ? 'Accesso in corso...' : 'Accedi'}
             </Button>
-            <p className="text-center text-zinc-400 text-sm">
+            <p className="text-center text-slate-500 text-sm">
               Nessun account?{' '}
-              <Link to="/auth/register" className="text-amber-500 hover:underline">Registra il tuo negozio</Link>
+              <Link to="/auth/register" className="text-blue-600 hover:underline">Registra il tuo negozio</Link>
             </p>
           </form>
         </CardContent>
