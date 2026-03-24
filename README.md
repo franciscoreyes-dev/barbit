@@ -1,107 +1,108 @@
 # Barbit
 
-A multi-tenant SaaS platform for barber shop appointment management. Customers can search for shops, pick a barber and a service, choose an available time slot, and book — all without creating an account. Shop owners and barbers manage everything from their own dashboards.
+Online booking for barber shops. Customers find a shop, pick a barber and a service, choose an available slot, and book — no account needed, just a phone number and an OTP.
 
-I built this as a portfolio project to show what I can do with a fullstack TypeScript stack after my two years at ITS Angelo Rizzoli (Software Architect — Full Stack Developer) and my first year working in the industry. The idea came from a real problem: most barber shops around me still take bookings over the phone or on Instagram DMs, and the existing platforms are either too expensive or too bloated for a small shop.
+Live Demo (coming soon) · Backend API (coming soon)
 
-## What it does
+## What is this?
 
-**For customers (no account needed):**
-- Search shops by name or city
-- Browse barbers and their services with prices and duration
-- Pick a date and see available time slots calculated in real time
-- Book by verifying their phone number with a 6-digit OTP via SMS
-- View and cancel upcoming appointments (up to 12h before)
+Barbit is a multi-tenant SaaS that gives barber shops an online booking page and a management dashboard. The idea is simple: most small shops still take bookings over the phone or on Instagram DMs, and the existing platforms are either too expensive or way too complex for a 2-barber shop.
 
-**For shop owners:**
-- Register the shop and get a public page at `/shop/your-slug`
-- Invite barbers via email (they get a link, set a password, and they're in)
-- See the full shop calendar — week view on desktop, swipeable day view on mobile
-- Filter appointments by barber
-- Stats dashboard with KPIs, appointments per day chart, busiest hours, service and barber breakdowns
-- Estimated income card with optional no-show rate adjustment
-- Manage barber profiles, services, schedules, and exceptions
-- Configure shop details (name, address, phone, timezone)
+Three roles, three different experiences:
 
-**For barbers:**
-- Personal calendar with appointment details
-- Mark appointments as completed or no-show
-- Manage their own services (name, duration, price)
-- Set weekly schedule and day-by-day exceptions (day off, different hours)
+**Customers** search for a shop, browse barbers and services, pick a date, see available slots in real time, and book by verifying their phone with a 6-digit SMS code. No sign-up, no password, no app to download.
+
+**Shop owners** register their shop, invite barbers via email, and get a full dashboard — calendar with week/day views, stats with charts and KPIs, barber management, and shop settings.
+
+**Barbers** get their own dashboard to manage services, set their weekly schedule, add exceptions (day off, different hours), and view their personal calendar with the ability to mark appointments as completed or no-show.
 
 ## Tech stack
 
-| Layer | Tech |
+| | |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui |
-| State | TanStack Query v5, React Hook Form + Zod |
-| Routing | React Router v6 with role-based guards |
-| Backend | Node.js 20, Fastify v4, TypeScript |
-| Database | PostgreSQL with raw SQL (node-postgres, no ORM) |
-| Auth | JWT (owner/barber), OTP via SMS (customers) |
-| Email | Resend (barber invites) |
-| SMS | Twilio (OTP + booking confirmations) |
-| Icons | Lucide React |
+| **Frontend** | React 18 · TypeScript · Vite · Tailwind CSS v4 · shadcn/ui · TanStack Query v5 · React Router v6 · React Hook Form + Zod · Lucide icons |
+| **Backend** | Node.js 20 · Fastify v4 · TypeScript · PostgreSQL · node-postgres (raw SQL, no ORM) |
+| **Auth** | JWT for owner/barber · SMS OTP for customers (Twilio) |
+| **Services** | Twilio (SMS) · Resend (email invites) |
+
+## How it works
+
+### Booking flow
+
+1. Customer searches shops by name or city
+2. Picks a barber → picks a service (with price and duration)
+3. Picks a date → backend calculates available slots on the fly from the barber's schedule, exceptions, and existing bookings
+4. Enters phone number → receives 6-digit OTP via SMS → confirms
+5. Appointment created, confirmation SMS sent
+
+Slots are never pre-generated. The algorithm builds them dynamically based on the service duration and cascades from the barber's start time. If someone books 9:00–9:40, the next available slot is 9:40, not 9:30. Race conditions (two people booking the same slot) are handled with a Postgres transaction + `SELECT FOR UPDATE`.
+
+### Owner dashboard
+
+- **Calendar** — 7-day grid on desktop, swipeable single-day view on mobile. Filter by barber. Compact appointment cards that expand on tap.
+- **Stats** — week or day view with KPIs (appointments, completed, revenue, no-show rate), bar chart by day, busiest hours, service breakdown, barber breakdown. Estimated income card with optional no-show adjustment.
+- **Barbers** — invite via email, activate/deactivate, manage each barber's services, schedule, and exceptions.
+- **Settings** — shop name, address, city, phone, email, timezone.
+
+### Barber dashboard
+
+- Personal calendar with appointment details and customer phone (tap to call)
+- Mark appointments as completed or no-show
+- Manage own services (name, duration, price)
+- Weekly schedule editor + day-by-day exceptions
+
+## Database
+
+13 migrations, 11 tables. Multi-tenant by design — every table has a `shop_id` and every query filters by it. No cross-tenant queries exist.
+
+```
+shops · users · barbers · service_catalog · barber_services
+weekly_schedule · schedule_exceptions · customers
+appointments · invite_tokens · otp_codes
+```
 
 ## Project structure
 
 ```
 barbit/
-├── frontend/                # React SPA
+├── frontend/
 │   └── src/
-│       ├── components/
-│       │   ├── ui/          # shadcn/ui base components
-│       │   ├── owner/       # AppointmentCard, DayColumn, BarberFilterStrip
-│       │   ├── icons/       # Shared icon components
-│       │   └── layout/      # OwnerLayout, BarberLayout
-│       ├── views/
-│       │   ├── public/      # HomeView, ShopView, BookingView, OtpView
-│       │   ├── owner/       # StatsView, DashboardView, BarbersView, BarberDetailView, SettingsView
-│       │   ├── barber/      # CalendarView, ServicesView, ScheduleView
-│       │   └── auth/        # LoginView, RegisterView, InviteView
-│       ├── hooks/           # TanStack Query hooks for every API resource
+│       ├── components/      # ui/ (shadcn), owner/, icons/, layout/
+│       ├── views/           # public/, owner/, barber/, auth/
+│       ├── hooks/           # TanStack Query hooks per resource
 │       ├── lib/             # Axios instance, constants
 │       ├── types/           # TypeScript interfaces
-│       └── router/          # Routes + guards
+│       └── router/          # Routes + role-based guards
 ├── backend/
 │   └── src/
 │       ├── routes/          # Fastify route handlers
-│       ├── services/        # Business logic (availability, appointments, OTP, shop stats)
-│       ├── db/              # Connection pool, migrations, seed
-│       ├── jobs/            # Background tasks (appointment reminders)
-│       └── lib/             # JWT helpers, auth middleware
+│       ├── services/        # Business logic
+│       ├── db/              # Pool, migrations, seed
+│       ├── jobs/            # Background tasks
+│       └── lib/             # JWT, auth middleware
 ```
 
-## Database
-
-13 migrations, 11 tables. The schema is designed around multi-tenant isolation — every table has a `shop_id` foreign key and every query filters by it.
-
-Main tables: `shops`, `users`, `barbers`, `service_catalog`, `barber_services`, `weekly_schedule`, `schedule_exceptions`, `customers`, `appointments`, `invite_tokens`, `otp_codes`.
-
-**Slot calculation:** slots are not pre-generated. When a customer asks for availability, the backend calculates open slots on the fly based on the barber's schedule, any exceptions for that day, the service duration, and existing appointments. Race conditions on double-booking are handled with a Postgres transaction + `SELECT FOR UPDATE`.
-
-## How to run it
+## Running locally
 
 ### Prerequisites
+
 - Node.js 20+
 - PostgreSQL
-- Twilio account (for SMS OTP)
-- Resend account (for invite emails)
+- Twilio account (SMS)
+- Resend account (emails)
 
 ### Backend
 
 ```bash
 cd backend
-cp .env.example .env   # fill in your credentials
+cp .env.example .env   # fill in credentials
 npm install
 npm run migrate
-npm run seed           # creates a demo shop with barbers and services
-npm run dev            # starts on http://localhost:3000
+npm run seed           # demo shop with barbers and services
+npm run dev            # http://localhost:3000
 ```
 
-Environment variables needed:
-
-```
+```env
 PORT=3000
 DATABASE_URL=postgresql://user:pass@localhost:5432/barbit
 JWT_SECRET=your-secret
@@ -116,45 +117,27 @@ FRONTEND_URL=http://localhost:5173
 
 ```bash
 cd frontend
-cp .env.example .env   # set VITE_API_URL=http://localhost:3000
+cp .env.example .env   # VITE_API_URL=http://localhost:3000
 npm install
-npm run dev            # starts on http://localhost:5173
+npm run dev            # http://localhost:5173
 ```
 
-## API overview
+## API
 
 | Area | Endpoints |
 |---|---|
-| Auth | `POST /auth/register`, `/auth/login`, `/auth/otp/send`, `/auth/otp/verify` |
-| Invites | `GET /invite/:token`, `POST /invite/:token/accept` |
-| Shops | `GET /shops/search`, `GET /shops/:slug`, `PATCH /shops/:id`, `GET /shops/:id/stats` |
-| Barbers | `GET /shops/:shopId/barbers`, `POST /barbers/invite`, `PATCH /barbers/:id`, `DELETE /barbers/:id` |
-| Services | `GET /barbers/:id/services`, `POST /barbers/:id/services`, `PATCH`, `DELETE` |
-| Availability | `GET/PUT /barbers/:id/schedule`, `GET/POST/DELETE /barbers/:id/exceptions`, `GET /barbers/:id/slots` |
-| Appointments | `POST /appointments`, `GET /appointments/mine`, `DELETE /appointments/:id`, `PATCH /appointments/:id/status` |
+| Auth | `POST /auth/register` · `/auth/login` · `/auth/otp/send` · `/auth/otp/verify` |
+| Invites | `GET /invite/:token` · `POST /invite/:token/accept` |
+| Shops | `GET /shops/search` · `GET /shops/:slug` · `PATCH /shops/:id` · `GET /shops/:id/stats` |
+| Barbers | `GET /shops/:shopId/barbers` · `POST /barbers/invite` · `PATCH /barbers/:id` · `DELETE /barbers/:id` |
+| Services | `GET/POST /barbers/:id/services` · `PATCH/DELETE /barbers/:id/services/:serviceId` |
+| Availability | `GET/PUT /barbers/:id/schedule` · `GET/POST/DELETE /barbers/:id/exceptions` · `GET /barbers/:id/slots` |
+| Appointments | `POST /appointments` · `GET /appointments/mine` · `DELETE /appointments/:id` · `PATCH /appointments/:id/status` |
 
-## What I learned building this
+## Roadmap
 
-This is the project where a lot of things clicked for me. Some highlights:
-
-- **Multi-tenancy with row-level isolation.** Every query has a `WHERE shop_id = $1` and I learned the hard way what happens when you forget one (spoiler: you see other people's data).
-- **Slot calculation is harder than it looks.** Generating available time slots from a weekly schedule + exceptions + existing bookings, with variable service durations, was the trickiest algorithm in the project. And then you need to handle two people trying to book the same slot at the same time — that's where Postgres transactions with `SELECT FOR UPDATE` saved me.
-- **OTP auth without accounts.** Customers don't sign up. They just enter their phone, get a code, and they're in. It was a good exercise in thinking about auth flows that aren't the usual email/password.
-- **Mobile-first is a mindset.** I designed every component for a phone screen first and then adapted for desktop. The owner calendar switches from a single-day swipeable view on mobile to a full 7-day grid on desktop, and getting the appointment cards to work in both layouts without duplicating code took some iteration.
-- **Component architecture matters.** Extracting `AppointmentCard`, `DayColumn`, `BarberFilterStrip` as reusable components made it possible to share logic between the owner calendar and stats views without copy-pasting.
-
-## Status
-
-This is a working MVP. The core flows (registration, invite, booking, calendar management) are all functional. Some things I'd add next:
-
-- [ ] SMS reminders before appointments (backend job is scaffolded)
-- [ ] Deployment on Vercel + Railway
+- [ ] Deploy on Vercel (frontend) + Railway (backend + Postgres)
+- [ ] SMS reminders before appointments (job scaffolded)
+- [ ] Real-time calendar updates
 - [ ] End-to-end tests
-- [ ] Real-time calendar updates with WebSocket or SSE
 - [ ] Customer appointment history page
-
-## About me
-
-I'm Francisco — fullstack developer based in Milan. I studied at [ITS Angelo Rizzoli](https://www.its-rizzoli.it/) (2 year program, Software Architect — Full Stack Developer) and I've been working in the industry for about a year now. This project is part of my portfolio to show how I approach building a product from scratch.
-
-If you want to get in touch, find me on [GitHub](https://github.com/franciscoreyes-dev).
